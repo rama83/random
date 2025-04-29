@@ -106,10 +106,42 @@ from pyspark.sql import Row
 rows = [Row(id=1, name="Alice"), Row(id=2, name="Bob")]
 df = spark.createDataFrame(rows)
 
-# Write to Iceberg table
-# Will create if not exists
+# DDL Operations - Create Table (if not exists)
+spark.sql("""
+    CREATE TABLE IF NOT EXISTS glue_catalog.s3tables_db.users_native (
+        id INT,
+        name STRING
+    )
+    USING ICEBERG
+""")
 
-df.writeTo("glue_catalog.s3tables_db.users_native").using("iceberg").createOrReplace()
+# DML Operation - Insert
+spark.sql("""
+    INSERT INTO glue_catalog.s3tables_db.users_native VALUES (3, 'Charlie'), (4, 'Diana')
+""")
+
+# DML Operation - Update
+spark.sql("""
+    UPDATE glue_catalog.s3tables_db.users_native
+    SET name = 'Alice Updated'
+    WHERE id = 1
+""")
+
+# DML Operation - Delete
+spark.sql("""
+    DELETE FROM glue_catalog.s3tables_db.users_native WHERE id = 2
+""")
+
+# DML Overwrite or Append from DataFrame
+df.writeTo("glue_catalog.s3tables_db.users_native").using("iceberg").overwritePartitions()
+
+# Alter Table - Add Column
+spark.sql("""
+    ALTER TABLE glue_catalog.s3tables_db.users_native ADD COLUMN email STRING
+""")
+
+# Describe Table
+spark.sql("DESCRIBE TABLE glue_catalog.s3tables_db.users_native").show()
 
 # Read back and display
 df_read = spark.read.format("iceberg").load("glue_catalog.s3tables_db.users_native")
